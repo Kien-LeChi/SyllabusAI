@@ -7,5 +7,360 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css')}}">
 </head>
 <body>
+
+    <!-- Sidebar Navigation -->
+    <aside id="sidebar">
+        <div class="brand">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+                <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+            </svg>
+            SyllabusAI
+        </div>
+
+        <button class="create-btn" onclick="app.showCreateView()">
+            <span>+</span> Create New Syllabus
+        </button>
+
+        <div class="section-label">My Courses</div>
+        <ul id="course-list-container" class="course-list">
+            <!-- Dynamic Course List Will Be Injected Here -->
+        </ul>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main>
+        
+        <!-- View 1: Create New Syllabus Form -->
+        <section id="create-view" class="view-section active">
+            <h2>Design New Course</h2>
+            <p style="margin-bottom: 2rem; color: var(--text-muted);">Fill out the details below and our AI will structure the entire semester for you.</p>
+
+            <form id="syllabus-form">
+                <div class="form-group">
+                    <label for="courseName">Course Name / Code <span style="color:red">*</span></label>
+                    <input type="text" id="courseName" required placeholder="e.g., CS101: Intro to Python">
+                </div>
+
+                <div class="form-group">
+                    <label for="courseContent">@Course Descriptive / Unit Content (Optional)</label>
+                    <span class="hint">If left empty, AI will generate content based on objectives.</span>
+                    <textarea id="courseContent" rows="3" placeholder="e.g., Variables, Loops, Functions, OOP..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="courseObjectives">@Course Objectives <span style="color:red">*</span></label>
+                    <textarea id="courseObjectives" rows="3" required placeholder="What will students be able to do by the end?"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="prerequisites">@Prerequisites <span style="color:red">*</span></label>
+                    <textarea id="prerequisites" rows="2" required placeholder="What prior knowledge is required?"></textarea>
+                </div>
+
+                <div class="row">
+                    <div class="col form-group">
+                        <label for="duration">@Duration (Weeks)</label>
+                        <input type="number" id="duration" min="1" max="52" value="12" required>
+                    </div>
+                    <div class="col form-group">
+                        <label for="sessions">@Weekly Sessions</label>
+                        <input type="number" id="sessions" min="1" max="7" value="2" required>
+                    </div>
+                    <div class="col form-group">
+                        <label for="homework">@Homework (Hours/Week)</label>
+                        <input type="number" id="homework" min="0" value="4" required>
+                    </div>
+                </div>
+
+                <button type="submit" class="submit-btn">Generate Syllabus</button>
+            </form>
+        </section>
+
+        <!-- View 2: Syllabus Viewer -->
+        <section id="syllabus-view" class="view-section">
+            <div id="syllabus-display-area">
+                <!-- Dynamic Content Loaded Here -->
+            </div>
+
+            <div class="ai-prompt-container">
+                <label><strong>Refine with AI</strong></label>
+                <p class="hint">Want to change a specific session or add more detail? Ask the AI.</p>
+                <div class="ai-input-wrapper">
+                    <textarea id="ai-prompt-input" placeholder="e.g., Make Session 3 more interactive with a group activity..."></textarea>
+                    <button class="ai-send-btn" onclick="app.handlePromptUpdate()">Update</button>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Loading Overlay -->
+    <div id="loader">
+        <div class="spinner"></div>
+        <p>AI is structuring your course...</p>
+    </div>
+
+    <script>
+        /* =========================================
+           JAVASCRIPT LOGIC
+           Rationale: I have organized the JS into an 'app' object
+           to avoid polluting the global namespace. It handles
+           Routing (toggling views), Data Management (Mock DB),
+           and API interaction (Mock Fetch).
+           ========================================= */
+
+        const CONSTANTS = {
+            API_CREATE: '/api/create-new-syllabus',
+            API_UPDATE: '/api/update-syllabus'
+        };
+
+        const app = {
+            // Local State to mimic Database
+            state: {
+                courses: [],
+                activeCourseId: null,
+                activeSessionId: null
+            },
+
+            init: function() {
+                // Attach Event Listeners
+                document.getElementById('syllabus-form').addEventListener('submit', this.handleFormSubmit.bind(this));
+                
+                // Load example data if empty (for demonstration)
+                if(this.state.courses.length === 0) {
+                    this.renderSidebar();
+                }
+            },
+
+            // --- NAVIGATION & UI HELPERS ---
+
+            showCreateView: function() {
+                document.getElementById('create-view').classList.add('active');
+                document.getElementById('syllabus-view').classList.remove('active');
+                
+                // Clear active states in sidebar
+                document.querySelectorAll('.course-header').forEach(el => el.classList.remove('active'));
+            },
+
+            showSyllabusView: function() {
+                document.getElementById('create-view').classList.remove('active');
+                document.getElementById('syllabus-view').classList.add('active');
+            },
+
+            toggleLoader: function(show) {
+                document.getElementById('loader').style.display = show ? 'flex' : 'none';
+            },
+
+            // --- API INTERACTION (MOCK) ---
+
+            /* In a real Flask app, this would use fetch().
+               Here, we simulate the asynchronous delay and logic.
+            */
+            handleFormSubmit: async function(e) {
+                e.preventDefault();
+                this.toggleLoader(true);
+
+                // 1. Gather Data
+                const formData = {
+                    name: document.getElementById('courseName').value,
+                    content: document.getElementById('courseContent').value,
+                    objectives: document.getElementById('courseObjectives').value,
+                    prerequisites: document.getElementById('prerequisites').value,
+                    duration: document.getElementById('duration').value,
+                    sessionsPerWeek: document.getElementById('sessions').value,
+                    homework: document.getElementById('homework').value
+                };
+
+                console.log(`POST ${CONSTANTS.API_CREATE}`, formData);
+
+                // 2. Simulate API Latency (1.5 seconds)
+                await new Promise(r => setTimeout(r, 1500));
+
+                // 3. Generate Mock Response (The "AI" part)
+                const newCourse = this.generateMockCourse(formData);
+                
+                // 4. Update State
+                this.state.courses.push(newCourse);
+                this.state.activeCourseId = newCourse.id;
+                this.state.activeSessionId = 'intro'; // Default to intro
+
+                // 5. Update UI
+                this.renderSidebar();
+                this.renderCourseContent(newCourse.id, 'intro');
+                this.showSyllabusView();
+                this.toggleLoader(false);
+                
+                // Reset form
+                e.target.reset();
+            },
+
+            handlePromptUpdate: async function() {
+                const prompt = document.getElementById('ai-prompt-input').value;
+                if(!prompt) return alert("Please enter a prompt.");
+                
+                this.toggleLoader(true);
+                // Simulate AI processing update
+                await new Promise(r => setTimeout(r, 1000));
+                
+                alert("AI has processed your request: " + prompt + "\n(In a real app, the content above would refresh)");
+                document.getElementById('ai-prompt-input').value = '';
+                this.toggleLoader(false);
+            },
+
+            // --- RENDERING LOGIC ---
+
+            renderSidebar: function() {
+                const container = document.getElementById('course-list-container');
+                container.innerHTML = '';
+
+                this.state.courses.forEach(course => {
+                    const li = document.createElement('li');
+                    li.className = 'course-item';
+
+                    // Course Header (Click to toggle accordion)
+                    const header = document.createElement('div');
+                    header.className = `course-header ${this.state.activeCourseId === course.id ? 'active' : ''}`;
+                    header.innerHTML = `<span>${course.name}</span> <span>▼</span>`;
+                    header.onclick = () => this.toggleCourseDropdown(course.id);
+
+                    // Session List (Dropdown)
+                    const sessionUl = document.createElement('ul');
+                    sessionUl.className = `session-list ${this.state.activeCourseId === course.id ? 'open' : ''}`;
+                    sessionUl.id = `sessions-${course.id}`;
+
+                    // "Intro" Item
+                    const introLi = document.createElement('li');
+                    introLi.className = 'session-item';
+                    introLi.innerText = 'Course Introduction';
+                    introLi.onclick = (e) => {
+                        e.stopPropagation();
+                        this.renderCourseContent(course.id, 'intro');
+                    };
+                    sessionUl.appendChild(introLi);
+
+                    // Dynamic Sessions
+                    course.sessions.forEach(session => {
+                        const sessLi = document.createElement('li');
+                        sessLi.className = 'session-item';
+                        sessLi.innerText = session.title;
+                        sessLi.onclick = (e) => {
+                            e.stopPropagation();
+                            this.renderCourseContent(course.id, session.id);
+                        };
+                        sessionUl.appendChild(sessLi);
+                    });
+
+                    li.appendChild(header);
+                    li.appendChild(sessionUl);
+                    container.appendChild(li);
+                });
+            },
+
+            toggleCourseDropdown: function(courseId) {
+                // Toggle UI state only
+                const list = document.getElementById(`sessions-${courseId}`);
+                const isOpen = list.classList.contains('open');
+                
+                // Close all others
+                document.querySelectorAll('.session-list').forEach(el => el.classList.remove('open'));
+                
+                if (!isOpen) {
+                    list.classList.add('open');
+                    this.state.activeCourseId = courseId;
+                }
+                
+                this.renderSidebar(); // Re-render to update active styling
+            },
+
+            renderCourseContent: function(courseId, sessionId) {
+                const course = this.state.courses.find(c => c.id === courseId);
+                const displayArea = document.getElementById('syllabus-display-area');
+                
+                // Highlight active session in sidebar
+                document.querySelectorAll('.session-item').forEach(el => el.classList.remove('active'));
+                // Note: accurate highlighting would require ID matching on the DOM elements, skipped for brevity
+                
+                if (sessionId === 'intro') {
+                    // Render Intro Page
+                    displayArea.innerHTML = `
+                        <div class="syllabus-meta-header">
+                            <h1>${course.name}</h1>
+                            <p><strong>Duration:</strong> ${course.duration} Weeks | <strong>Sessions/Week:</strong> ${course.sessionsPerWeek}</p>
+                            <hr style="margin: 1rem 0; border: 0; border-top: 1px solid #ddd;">
+                            <p><strong>Objectives:</strong><br>${course.objectives}</p>
+                            <br>
+                            <p><strong>Prerequisites:</strong><br>${course.prerequisites}</p>
+                        </div>
+                        <div class="syllabus-content">
+                            <h3>Course Overview</h3>
+                            <p>This course has been structured by AI to meet the specified objectives. Please use the sidebar to navigate through specific weekly sessions.</p>
+                        </div>
+                    `;
+                } else {
+                    // Render Specific Session
+                    const session = course.sessions.find(s => s.id === sessionId);
+                    displayArea.innerHTML = `
+                        <div class="session-card">
+                            <div class="session-title">${session.title}</div>
+                            <div class="syllabus-content">
+                                <div class="instruction-block">
+                                    <h4>👨‍🏫 Teaching Strategy</h4>
+                                    <p>${session.strategy}</p>
+                                </div>
+                                <div class="instruction-block">
+                                    <h4>🗣️ Key Talking Points</h4>
+                                    <ul>${session.points.map(p => `<li>${p}</li>`).join('')}</ul>
+                                </div>
+                                <div class="instruction-block">
+                                    <h4>💻 Visuals / Demonstrations</h4>
+                                    <p>${session.visuals}</p>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                this.state.activeCourseId = courseId;
+                this.state.activeSessionId = sessionId;
+                this.showSyllabusView();
+            },
+
+            // --- DATA GENERATOR (Simulates AI) ---
+            generateMockCourse: function(data) {
+                const id = Date.now();
+                const numSessions = 3; // Simulating just 3 sessions for demo
+                const sessions = [];
+
+                for(let i=1; i<=numSessions; i++) {
+                    sessions.push({
+                        id: `s_${id}_${i}`,
+                        title: `Week ${i}: ${data.content ? data.content.split(',')[0] + ' Basics' : 'Fundamentals Part ' + i}`,
+                        strategy: "Start with a real-world analogy. Use the whiteboard to map out the concepts before diving into code/theory.",
+                        points: [
+                            "Introduction to core concepts",
+                            "Common pitfalls and how to avoid them",
+                            "Interactive Q&A session"
+                        ],
+                        visuals: "Show diagram X followed by a live coding demonstration."
+                    });
+                }
+
+                return {
+                    id: id,
+                    name: data.name,
+                    objectives: data.objectives,
+                    prerequisites: data.prerequisites,
+                    duration: data.duration,
+                    sessionsPerWeek: data.sessionsPerWeek,
+                    sessions: sessions
+                };
+            }
+        };
+
+        // Initialize App
+        app.init();
+
+    </script>
 </body>
 </html>

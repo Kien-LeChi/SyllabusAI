@@ -1,0 +1,177 @@
+/* =========================================
+   THEME VARIABLES
+   ========================================= */
+:root {
+    --primary-color: #0f766e;
+    --bg-sidebar: #f1f5f9;
+    --bg-main: #ffffff;
+    --text-main: #1e293b;
+    --text-muted: #64748b;
+    --border-color: #e2e8f0;
+    --radius: 8px;
+    --shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --font-family: 'Segoe UI', system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    font-family: var(--font-family);
+    color: var(--text-main);
+    background-color: var(--bg-main);
+    height: 100vh;
+    display: flex;
+    overflow: hidden; /* Prevents whole page scroll, allows inner scroll */
+}
+
+/* =========================================
+   SIDEBAR COMPONENT
+   ========================================= */
+aside {
+    width: 300px;
+    background-color: var(--bg-sidebar);
+    border-right: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem;
+    height: 100%;
+    overflow-y: auto;
+    flex-shrink: 0;
+}
+
+.brand {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    margin-bottom: 2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Navigation Button to Separate Page */
+.create-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background-color: var(--primary-color);
+    color: white;
+    text-decoration: none;
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius);
+    font-weight: 600;
+    margin-bottom: 2rem;
+    transition: opacity 0.2s;
+}
+.create-btn:hover { opacity: 0.9; }
+
+.section-label {
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    margin-bottom: 0.75rem;
+    letter-spacing: 0.05em;
+}
+
+/* Course Accordion */
+.course-list { list-style: none; }
+.course-item { margin-bottom: 0.5rem; }
+
+.course-header {
+    padding: 0.75rem;
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    cursor: pointer;
+    font-weight: 600;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.2s;
+}
+.course-header:hover, .course-header.active {
+    border-color: var(--primary-color);
+}
+.course-header.active { background-color: #f0fdfa; }
+
+.session-list {
+    list-style: none;
+    margin-top: 0.25rem;
+    margin-left: 0.75rem;
+    border-left: 2px solid var(--border-color);
+    display: none;
+}
+.session-list.open { display: block; }
+
+.session-item {
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: color 0.2s;
+}
+.session-item:hover, .session-item.active {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+/* =========================================
+   MAIN CONTENT AREA
+   ========================================= */
+main {
+    flex: 1;
+    padding: 2rem 3rem;
+    overflow-y: auto;
+}
+
+.empty-state {
+    text-align: center;
+    color: var(--text-muted);
+    margin-top: 4rem;
+}
+
+/* Syllabus Content Cards */
+.syllabus-meta-header {
+    background-color: #f8fafc;
+    padding: 1.5rem;
+    border-radius: var(--radius);
+    border: 1px solid var(--border-color);
+    margin-bottom: 2rem;
+}
+
+.session-card {
+    background: white;
+    border-left: 4px solid var(--primary-color);
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    box-shadow: var(--shadow);
+}
+
+h2 { margin-bottom: 1rem; color: var(--text-main); }
+h4 { margin-top: 1.5rem; margin-bottom: 0.5rem; color: var(--text-main); }
+p, li { line-height: 1.6; color: #334155; }
+
+/* AI Prompt Area */
+.ai-prompt-container {
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 2px dashed var(--border-color);
+}
+textarea {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    margin-bottom: 0.5rem;
+    font-family: inherit;
+}
+.ai-send-btn {
+    background-color: #1e293b;
+    color: white;
+    border: none;
+    padding: 0.5rem 1.5rem;
+    border-radius: var(--radius);
+    cursor: pointer;
+}

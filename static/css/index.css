@@ -1,0 +1,342 @@
+/* =========================================
+    CSS VARIABLES & RESET
+    Rationale: defining a central theme allows for consistent
+    branding and easy updates. We use a professional, academic 
+    color palette (Teal/Slate).
+    ========================================= */
+:root {
+    --primary-color: #0f766e; /* Teal 700 */
+    --primary-hover: #0d9488; /* Teal 600 */
+    --bg-sidebar: #f1f5f9;    /* Slate 100 */
+    --bg-main: #ffffff;
+    --text-main: #1e293b;     /* Slate 800 */
+    --text-muted: #64748b;    /* Slate 500 */
+    --border-color: #e2e8f0;  /* Slate 200 */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+    --radius: 8px;
+    --font-family: 'Segoe UI', system-ui, sans-serif;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: var(--font-family);
+    color: var(--text-main);
+    background-color: var(--bg-main);
+    height: 100vh;
+    display: flex; /* Flexbox is crucial for the Sidebar | Content layout */
+    overflow: hidden;
+}
+
+/* =========================================
+    SIDEBAR COMPONENT
+    Rationale: Fixed width, scrollable. This holds the 
+    navigation and the list of generated courses.
+    ========================================= */
+aside {
+    width: 300px;
+    background-color: var(--bg-sidebar);
+    border-right: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem;
+    height: 100%;
+    overflow-y: auto;
+    flex-shrink: 0;
+}
+
+.brand {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    margin-bottom: 2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.create-btn {
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius);
+    font-weight: 600;
+    cursor: pointer;
+    width: 100%;
+    margin-bottom: 2rem;
+    transition: background 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.create-btn:hover {
+    background-color: var(--primary-hover);
+}
+
+.section-label {
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    margin-bottom: 0.75rem;
+    letter-spacing: 0.05em;
+}
+
+/* Course List Items */
+.course-list {
+    list-style: none;
+}
+
+.course-item {
+    margin-bottom: 0.5rem;
+}
+
+.course-header {
+    padding: 0.75rem;
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    cursor: pointer;
+    font-weight: 600;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.2s;
+}
+
+.course-header:hover {
+    border-color: var(--primary-color);
+}
+
+.course-header.active {
+    border-color: var(--primary-color);
+    background-color: #f0fdfa; /* Light teal bg */
+}
+
+/* Session Dropdown inside Sidebar */
+.session-list {
+    list-style: none;
+    margin-top: 0.25rem;
+    margin-left: 0.75rem;
+    border-left: 2px solid var(--border-color);
+    display: none; /* Hidden by default */
+}
+
+.session-list.open {
+    display: block;
+}
+
+.session-item {
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.session-item:hover, .session-item.active {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+/* =========================================
+    MAIN CONTENT AREA
+    Rationale: Flex-grow 1 allows it to fill remaining width.
+    It hosts the Form View and the Syllabus View.
+    ========================================= */
+main {
+    flex: 1;
+    padding: 2rem 3rem;
+    overflow-y: auto;
+    background-color: #ffffff;
+    position: relative;
+}
+
+/* Utility Class for Toggling Views */
+.view-section {
+    display: none;
+    max-width: 800px;
+    margin: 0 auto;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+.view-section.active {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+h2 {
+    font-size: 2rem;
+    margin-bottom: 1.5rem;
+    color: var(--text-main);
+}
+
+/* =========================================
+    FORM STYLING
+    Rationale: Clean, readable inputs with focus states.
+    Labels clearly associate with inputs for accessibility.
+    ========================================= */
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: var(--text-main);
+}
+
+.hint {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-bottom: 0.5rem;
+    display: block;
+}
+
+input[type="text"],
+input[type="number"],
+textarea {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    font-family: inherit;
+    font-size: 1rem;
+    transition: border-color 0.2s;
+}
+
+input:focus, textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.1);
+}
+
+.row {
+    display: flex;
+    gap: 1.5rem;
+}
+
+.col {
+    flex: 1;
+}
+
+button.submit-btn {
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 1rem 2rem;
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: var(--radius);
+    cursor: pointer;
+    float: right;
+    transition: background 0.2s;
+}
+
+button.submit-btn:disabled {
+    background-color: var(--text-muted);
+    cursor: not-allowed;
+}
+
+/* =========================================
+    SYLLABUS CONTENT VIEW
+    Rationale: Needs to look like a document.
+    ========================================= */
+.syllabus-content {
+    line-height: 1.7;
+    color: #334155;
+}
+
+.syllabus-meta-header {
+    background-color: #f8fafc;
+    padding: 1.5rem;
+    border-radius: var(--radius);
+    border: 1px solid var(--border-color);
+    margin-bottom: 2rem;
+}
+
+.session-card {
+    background: white;
+    border-left: 4px solid var(--primary-color);
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    box-shadow: var(--shadow-sm);
+}
+
+.session-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    color: var(--primary-color);
+}
+
+.instruction-block h4 {
+    margin-top: 1.5rem;
+    margin-bottom: 0.5rem;
+    color: var(--text-main);
+}
+
+/* =========================================
+    AI PROMPT BOX (Bottom of View)
+    ========================================= */
+.ai-prompt-container {
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 2px dashed var(--border-color);
+}
+
+.ai-input-wrapper {
+    position: relative;
+    display: flex;
+    gap: 1rem;
+}
+
+.ai-input-wrapper textarea {
+    min-height: 60px;
+    resize: vertical;
+}
+
+.ai-send-btn {
+    background-color: #1e293b;
+    color: white;
+    border: none;
+    padding: 0 1.5rem;
+    border-radius: var(--radius);
+    font-weight: 600;
+    cursor: pointer;
+}
+
+/* Loading Overlay */
+#loader {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(255,255,255,0.8);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+}
+.spinner {
+    width: 40px; height: 40px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid var(--primary-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 1rem;
+}
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+

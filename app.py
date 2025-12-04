@@ -1,9 +1,11 @@
 from flask import Flask, render_template, jsonify, request
 from flask_cors import CORS
+from api import api_bp
 app = Flask(__name__)
 # Enable CORS for all routes
 CORS(app)
 
+app.register_blueprint(api_bp, url_prefix='/api')
 
 @app.route('/')
 def index():
