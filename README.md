@@ -2,9 +2,9 @@
 
 ![Python Version](https://img.shields.io/badge/python-3.9%2B-blue)
 ![Flask Version](https://img.shields.io/badge/flask-2.0%2B-green)
-![License](https://img.shields.io/badge/license-MIT-orange)
 
-**SyllabusBuilder** is a web application designed to streamline the workflow for educators. It allows teachers to create, format, and export standardized course syllabi in minutes, rather than hours.
+
+**SyllabusAI** is a web application designed to streamline the workflow for educators. It allows teachers to create, format, and export standardized course syllabi in minutes, rather than hours.
 
 ## 🚀 Key Features
 
@@ -52,4 +52,6 @@ GOOGLE_API_KEY="your_google_key_here"
 ```bash
 python -u app.py
 ```
+
+## The app will be hosted on 127.0.0.1:5000/
 
