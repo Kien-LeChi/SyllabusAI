@@ -37,12 +37,6 @@ def index():
     except Exception as e:
         return jsonify({"Error": str(e)}), 500
     
-@app.route('/create-syllabus')
-def create_syllabus():
-    try:
-        return render_template('create-syllabus.html')
-    except Exception as e:
-        return jsonify({"Error": str(e)}), 500
     
 @app.route('/view-syllabus')
 def view_syllabus():

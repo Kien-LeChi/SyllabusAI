@@ -6,25 +6,84 @@
 // Configuration Constants
 const API_ENDPOINTS = {
     GENERATE_STRUCTURE: '/api/generate-course-structure/',
-    GENERATE_WEEK_CONTENT: '/api/generate-week-contents/'
+    GENERATE_WEEK_CONTENT: '/api/generate-week-contents/',
+    GET_ALL_COURSES: '/api/get-all-courses' // Added endpoint for sidebar
 };
 
-// The URL to redirect to after successful generation.
-// In Flask, this matches the route for the view_syllabus function.
+// The URL to redirect to after successful generation or clicking a course.
 const VIEW_SYLLABUS_URL = '/view-syllabus'; 
 
 /**
  * Initialization
  * Waits for the DOM to be fully loaded before attaching listeners.
- * This replaces the app.init() pattern.
  */
 document.addEventListener('DOMContentLoaded', () => {
+    // 1. Attach Form Listeners
     const syllabusForm = document.getElementById('syllabus-form');
-    
     if (syllabusForm) {
         syllabusForm.addEventListener('submit', handleCourseGeneration);
     }
+
+    // 2. Fetch and Render Sidebar Courses
+    fetchCourses();
 });
+
+/**
+ * Fetch Courses for Sidebar
+ * Retrieves all courses to display in the "My Courses" list.
+ */
+async function fetchCourses() {
+    try {
+        const response = await fetch(API_ENDPOINTS.GET_ALL_COURSES);
+        if (response.ok) {
+            const courses = await response.json();
+            renderSidebar(courses);
+        } else {
+            console.error("Failed to fetch courses for sidebar.");
+        }
+    } catch (error) {
+        console.error("Error loading sidebar courses:", error);
+    }
+}
+
+/**
+ * Render Sidebar
+ * Populates the course list in the sidebar.
+ * Clicking a course redirects to the view-syllabus page.
+ */
+function renderSidebar(courses) {
+    const container = document.getElementById('course-list-container');
+    if (!container) return;
+
+    container.innerHTML = ''; // Clear existing content
+
+    if (courses.length === 0) {
+        container.innerHTML = '<li style="padding:1rem; font-style:italic; color:#888;">No courses found.</li>';
+        return;
+    }
+
+    courses.forEach(course => {
+        const li = document.createElement('li');
+        li.className = 'course-item';
+        
+        // Simple list item for the index page (no dropdown needed here)
+        li.innerHTML = `
+            <div class="course-header" style="cursor: pointer; padding: 10px; border-bottom: 1px solid #eee;">
+                <span>${course.code} ${course.name}</span>
+                <span>→</span>
+            </div>
+        `;
+
+        // Redirect to the View Syllabus page when clicked
+        // We pass the course_id as a hash or query param if your view logic supported it,
+        // but for now, we simply redirect to the main view.
+        li.onclick = () => {
+            window.location.href = VIEW_SYLLABUS_URL; 
+        };
+
+        container.appendChild(li);
+    });
+}
 
 /**
  * Toggle Loader
@@ -50,8 +109,6 @@ async function handleCourseGeneration(event) {
     toggleLoader(true);
 
     try {
-        // 1. Construct FormData manually to ensure keys match your API requirements.
-        // We use manual ID selection because the HTML inputs might lack 'name' attributes.
         const formData = new FormData();
         
         formData.append('teacherEmail', document.getElementById('teacherEmail').value)
@@ -64,75 +121,23 @@ async function handleCourseGeneration(event) {
         formData.append('sessionsPerWeek', document.getElementById('sessions').value);
         formData.append('homework', document.getElementById('homework').value);
 
-        console.log(formData);
-
-        // 2. Send Data to Flask Backend
         const response = await fetch(API_ENDPOINTS.GENERATE_STRUCTURE, {
             method: 'POST',
             body: formData 
-            // Note: Content-Type header is not set manually here. 
-            // The browser automatically sets it to multipart/form-data with the boundary when using FormData.
         });
 
-        // 3. Handle Response
         if (response.ok) {
-            // Option A: The server returns the redirect URL in JSON
-            // const data = await response.json();
-            // window.location.href = data.redirect_url;
-
-            // Option B: We hardcode the view URL as requested
             console.log("Course generated successfully. Redirecting...");
             window.location.href = VIEW_SYLLABUS_URL;
         } else {
             const errorData = await response.json();
             console.error('Server Error:', errorData);
             alert(`Error: ${errorData.message || 'Failed to generate syllabus'}`);
-            toggleLoader(false);
         }
 
     } catch (error) {
         console.error('Error:', error);
-        toggleLoader(false);
-    }
-}
-
-/**
- * Generate Week Contents
- * This function is prepared for the detailed view logic.
- * It calls the second API endpoint you described.
- * * @param {string} courseCode - The identifier for the course.
- * @param {number} weekNumber - The specific week to generate.
- */
-async function generateWeekContent(courseCode, weekNumber) {
-    toggleLoader(true);
-
-    const payload = {
-        courseCode: courseCode,
-        weekNumber: weekNumber
-    };
-
-    try {
-        const response = await fetch(API_ENDPOINTS.GENERATE_WEEK_CONTENT, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(payload)
-        });
-
-        if (response.ok) {
-            const detailedSessionData = await response.json();
-            console.log("Detailed Session Data Received:", detailedSessionData);
-            
-            // Logic to render this JSON into the UI would go here
-            // e.g., renderSessionDetails(detailedSessionData);
-            
-            return detailedSessionData;
-        } else {
-            console.error("Failed to fetch week details");
-        }
-    } catch (error) {
-        console.error("Error fetching week details:", error);
+        alert("An unexpected error occurred.");
     } finally {
         toggleLoader(false);
     }
