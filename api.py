@@ -12,12 +12,15 @@ import json
 from db import *
 from sqlalchemy import inspect, text
 
+use_actual_ai_response = True
+
 import os
 load_dotenv()
 
 api_key = os.getenv("GENAI_API_KEY")
 if api_key is None:
     raise ValueError("GENAI_API_KEY cannot be found")
+
 client = genai.Client(api_key=api_key)
 
 api_bp = Blueprint("api", __name__)
@@ -123,28 +126,30 @@ def create_new_course(
     """
     
     print("Prompt is structured. Sending prompt to GenAI...")
-    # res = None
-    # try:
-    #     res = client.models.generate_content(
-    #         model="gemini-2.5-flash-live",
-    #         contents=prompt,
-    #         config=types.GenerateContentConfig(
-    #             temperature=0.1
-    #         )
-    #     )
-    # except Exception as e:
-    #     raise TimeoutError(f"Error while getting data from GenAI: {e}")
-    
-    # try:
-    #    response = clean_json(res.text)
-    # except Exception as e:
-    #     raise TypeError(f"AI failed to return valid JSON {e}")
+    res = None
+    response = None
+    if use_actual_ai_response:
+        try:
+            res = client.models.generate_content(
+                model="gemini-2.5-flash-lite",
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    temperature=0.1
+                )
+            )
+        except Exception as e:
+            raise TimeoutError(f"Error while getting data from GenAI: {e}")
+        
+        try:
+            response = clean_json(res.text)
+        except Exception as e:
+            raise TypeError(f"AI failed to return valid JSON {e}")
     
     # Okay I am poor so I must use this to not exceed rate limites
-    response = None
-    with open("weekly.json", "r", encoding='utf-8') as file:
-        response = file.read()
-    response = clean_json(response)
+    else :
+        with open("weekly.json", "r", encoding='utf-8') as file:
+            response = file.read()
+        response = clean_json(response)
     # Please unpoor me
     
     
@@ -313,8 +318,6 @@ def get_week_sessions():
 def create_week_sessions():
     
     # ONGOING: Get week's ID
-    # TODO: Construct another AI-prompt to send it EVERY CONTEXT to create this week's sessions.
-    # TODO: Add a button to initiate generating sessions on the weekly page
     # TODO: Add the Update With AI feature
     try:
         req_data = request.get_json()
@@ -362,7 +365,7 @@ def create_week_sessions():
             {json.dumps(context_json, indent=2, ensure_ascii=False)}.
             Make sure that the content of each lectures satisfy the week's topic and summary, and overall fits
             into the syllabus and fulfilling the content's of the course.
-            The response format should be a Valid JSON containing the minutes of {sessions_count} sessions, each wrapped in its "session i" key.
+            The response format should be a **Valid JSON** containing the minutes of {sessions_count} sessions, each wrapped in its "session i" key.
             e.g. {{
               "session 1": {{
                   "Minute 0-15": "Introduction"
@@ -371,30 +374,31 @@ def create_week_sessions():
         """   
         
         print("Prompt is structured. Sending prompt to GenAI...")
-        # res = None
-        # try:
-        #     res = client.models.generate_content(
-        #         model="gemini-2.5-flash-live",
-        #         contents=prompt,
-        #         config=types.GenerateContentConfig(
-        #             temperature=0.1
-        #         )
-        #     )
-        # except Exception as e:
-        #     raise TimeoutError(f"Error while getting data from GenAI: {e}")
-        
-        # try:
-        #    response = clean_json(res.text)
-        # except Exception as e:
-        #     raise TypeError(f"AI failed to return valid JSON {e}")
+        res = None
+        response = None
+        if use_actual_ai_response:
+            try:
+                res = client.models.generate_content(
+                    model="gemini-2.5-flash-lite",
+                    contents=prompt,
+                    config=types.GenerateContentConfig(
+                        temperature=0.1
+                    )
+                )
+            except Exception as e:
+                raise TimeoutError(f"Error while getting data from GenAI: {e}")
+            
+            try:
+                response = clean_json(res.text)
+            except Exception as e:
+                raise TypeError(f"AI failed to return valid JSON {e}")
         
         # Okay I am poor so I must use this to not exceed rate limites
-        
-        response = None
-        with open('session.json', 'r', encoding="utf-8") as file:
-            response = file.read()
-        response = clean_json(response)
-        print("Got response")
+        else :
+            with open('session.json', 'r', encoding="utf-8") as file:
+                response = file.read()
+            response = clean_json(response)
+            print("Got response")
         
         created_sessions = []
         
