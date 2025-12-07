@@ -1,0 +1,50 @@
+{
+    "week 1": {
+        "topic": "Foundations: Introduction to Software, Tools, and Mathematical Thinking",
+        "summary": "This foundational week orients students to the world of software development and engineering studies. Students will be introduced to the course structure, learning objectives, and the definition of software. They will set up their development environment, including an Integrated Development Environment (IDE) and the command line. The week also covers the basics of mathematical thinking for programming, focusing on handling expressions and variables, drawing a parallel between mathematical variables and variables in code. The homework will involve environment setup and solving basic algebraic expressions to build a solid foundation."
+    },
+    "week 2": {
+        "topic": "Core Programming: Variables, Data Types, and Introduction to Version Control",
+        "summary": "Students dive into the fundamental building blocks of programming. The focus will be on variables, primitive data types (integers, strings, booleans), and basic operators. They will write their first simple programs that perform calculations and print output. Crucially, this week introduces the concept and importance of version control. Students will learn the basic workflow of Git (`init`, `add`, `commit`) to start tracking their work locally. The homework will consist of programming exercises to solidify understanding of data types and initial Git commands."
+    },
+    "week 3": {
+        "topic": "Logic and Control Flow: Conditionals, Loops, and Functions",
+        "summary": "This week focuses on controlling the flow of a program. Students will learn how to use conditional statements (if-else) to make decisions and loops (for, while) to perform repetitive tasks. The concept of functions is introduced, both from a programming perspective (reusable blocks of code) and a mathematical one (graphical representation of functions). This synergy helps students understand abstraction. Students will begin using version control for every piece of homework, which will involve writing programs that utilize loops and conditional logic."
+    },
+    "week 4": {
+        "topic": "Data Structures and Project Inception",
+        "summary": "Students move beyond simple data types to learn about fundamental data structures, such as lists (arrays) and dictionaries (maps), for storing and organizing collections of data. This week marks the official start of the small software project. Students will be organized into groups, introduced to the project requirements, and will begin brainstorming. The communication component is activated, focusing on effective teamwork, role definition, and creating initial project plans. Homework will involve exercises with data structures and the first project deliverable: a project proposal and plan."
+    },
+    "week 5": {
+        "topic": "Introduction to Relational Databases and Project Design",
+        "summary": "The focus shifts to data persistence with an introduction to relational databases. Students will learn the core concepts of tables, columns, rows, and primary keys. They will be introduced to SQL (Structured Query Language) and practice writing basic `SELECT`, `INSERT`, and `CREATE TABLE` statements. Project groups will apply this knowledge to design a simple database schema for their application. The English communication component will focus on writing clear technical design documents."
+    },
+    "week 6": {
+        "topic": "Bridging the Gap: Connecting Applications to Databases",
+        "summary": "This week connects the two major pillars of the course: programming and databases. Students will learn how to use a library in their programming language to connect to a database, execute SQL queries, and process the results within their application. More advanced SQL topics like `WHERE` clauses and simple `JOIN`s will be covered. Project groups will focus on implementing the backend logic that interacts with the database they designed in the previous week. Homework will be heavily project-focused."
+    },
+    "week 7": {
+        "topic": "Structuring Code and Applying Physics: Object-Oriented Concepts and Kinetics",
+        "summary": "To manage growing project complexity, students are introduced to the fundamentals of Object-Oriented Programming (OOP): classes, objects, attributes, and methods. This paradigm helps in modeling real-world entities in code. To provide a practical problem-solving context, the basic concepts and laws of kinetics (e.g., equations of motion) are introduced. Students will be tasked with creating simple simulations or calculators related to kinetics, applying both their programming and mathematical skills. Project work will involve refactoring their code to use a more structured, object-oriented approach."
+    },
+    "week 8": {
+        "topic": "The Developer's Toolkit: Debugging, Testing, and Professional Practices",
+        "summary": "This week is dedicated to the essential tools and processes that professional developers use. Students will learn systematic debugging techniques using an IDE's debugger. The importance of software quality is emphasized through an introduction to automated testing, where they will write their first simple unit tests. The professional orientation aspect will cover the software development lifecycle and the role of a developer in a team. Project groups will be expected to identify and fix bugs in their code and add a small suite of tests for a core feature."
+    },
+    "week 9": {
+        "topic": "Collaborative Development: Advanced Version Control with Git",
+        "summary": "Students will elevate their version control skills to enable effective teamwork. The curriculum moves beyond local commits to cover collaborative workflows using Git. Key topics include branching, merging, pull requests, and resolving merge conflicts. This is directly applied to the group project, where students will use a shared repository (e.g., on GitHub or GitLab) to collaborate on their codebase. The communication module will focus on writing effective commit messages and participating in code reviews."
+    },
+    "week 10": {
+        "topic": "Project Refinement and Presentation Skills",
+        "summary": "The majority of this week is dedicated to project work, focusing on implementing the final features, improving the user interface, and ensuring the application is robust. The theoretical component shifts to communication, specifically preparing for the final project demonstration. Students will learn how to structure a technical presentation, create clear and concise slides, and practice their oral communication skills in English to effectively convey their work to an audience."
+    },
+    "week 11": {
+        "topic": "Finalizing the Project and Peer Review",
+        "summary": "This is the final week for project development, culminating in a 'code freeze' by the end of the week. The main activity is a peer review session where groups present their work-in-progress to another group, giving and receiving constructive feedback. This reinforces their understanding of the course material and hones their technical communication skills. The remaining lecture time is used for a comprehensive review of the key concepts covered throughout the course in preparation for the final demonstration."
+    },
+    "week 12": {
+        "topic": "Project Demonstrations and Course Retrospective",
+        "summary": "The final week is the culmination of the course. Each project group will formally present and demonstrate their completed small software project to the class and instructors. This serves as the final assessment for the project work, programming skills, and oral communication abilities. The course concludes with a retrospective, summarizing the key takeaways, reflecting on the learning journey, and providing an orientation towards future courses and potential career paths in the software industry."
+    }
+}

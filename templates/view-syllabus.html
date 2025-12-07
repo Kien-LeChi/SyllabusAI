@@ -38,6 +38,22 @@
         </div>
     </main>
 
+    <template id="generate-minutes-template">
+          <div class="generate-wrapper">
+              <p class="warning-text">⚠️ Detailed minutes not yet generated.</p>
+              <button class="ai-send-btn generate-btn">
+                  ⚡ Generate Session Minutes with AI
+              </button>
+          </div>
+      </template>
+
+      <template id="loading-spinner-template">
+          <div class="loader-wrapper">
+              <div class="spinner"></div>
+              <p>AI is generating minute-by-minute plans...</p>
+          </div>
+      </template>
+
     <!-- Link to the dedicated JavaScript file -->
     <script src="{{ url_for('static', filename='js/view_syllabus.js') }}" defer></script>
 </body>

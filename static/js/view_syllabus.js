@@ -1,172 +1,316 @@
 /**
  * View Syllabuses Logic
- * Handles loading data from localStorage, rendering the sidebar,
- * and displaying the selected course content.
+ * Fetches real data from Flask/SQLAlchemy and renders the sidebar/content.
  */
 
+const CONSTANTS = {
+    API_GET_COURSES: '/api/get-all-courses',
+    API_UPDATE_AI: '/api/update-syllabus',
+    API_GET_SESSIONS: '/api/get-week-sessions',
+    API_GENERATE_SESSIONS: '/api/generate-week-sessions' // New Endpoint
+};
 // State management
-let courses = [];
+let coursesData = [];
 let activeCourseId = null;
 
-// Mock API endpoint constant (used for console logging)
-const API_UPDATE_ENDPOINT = '/api/update-syllabus';
+/**
+ * Initialization: Fetches data from the server.
+ */
+document.addEventListener('DOMContentLoaded', () => {
+    fetchCourses();
+});
 
 /**
- * Initialization function called when the script loads.
+ * Fetches the hierarchical course data from the Flask API.
  */
-function init() {
-    // 1. Retrieve data from LocalStorage (mimicking a GET /api/courses request)
-    const stored = localStorage.getItem('syllabus_courses');
-    
-    if (stored) {
-        courses = JSON.parse(stored);
-        renderSidebar();
+async function fetchCourses() {
+    try {
+        const response = await fetch(CONSTANTS.API_GET_COURSES);
         
-        // If courses exist, automatically open the most recent one for better UX
-        if(courses.length > 0) {
-            const latest = courses[courses.length - 1];
-            toggleCourseDropdown(latest.id);
-            renderCourseContent(latest.id, 'intro');
+        if (!response.ok) {
+            throw new Error(`Server returned ${response.status} ${response.statusText}`);
         }
-    } else {
-        renderEmptySidebar();
+        
+        coursesData = await response.json();
+        
+        if (coursesData.length > 0) {
+            renderSidebar();
+            // Automatically open the first course for better UX
+            toggleCourseDropdown(coursesData[0].id);
+            renderContent(coursesData[0].id, 'intro');
+        } else {
+            renderEmptyState();
+        }
+    } catch (error) {
+        console.error('Error fetching courses:', error);
+        document.getElementById('course-list-container').innerHTML = 
+            `<li style="color:red; padding:1rem; list-style:none;">
+                <strong>Error loading data.</strong><br>
+                <small>${error.message}</small>
+            </li>`;
     }
 }
 
 /**
- * Renders a message if no courses exist in the "Database".
+ * Renders a message if the database is empty.
  */
-function renderEmptySidebar() {
+function renderEmptyState() {
     document.getElementById('course-list-container').innerHTML = 
-        '<li style="color:var(--text-muted); font-style:italic;">No courses found.</li>';
+        '<li style="color:var(--text-muted); font-style:italic; padding:1rem; list-style:none;">No courses found in database.</li>';
 }
 
 /**
- * Renders the list of courses into the sidebar.
+ * Renders the Sidebar Navigation (Courses -> Weeks)
  */
 function renderSidebar() {
     const container = document.getElementById('course-list-container');
     container.innerHTML = '';
 
-    courses.forEach(course => {
+    coursesData.forEach(course => {
         const li = document.createElement('li');
         li.className = 'course-item';
 
-        // Course Header (Accordion Toggle)
+        // 1. Course Header (Click to toggle)
         const header = document.createElement('div');
         header.className = `course-header ${activeCourseId === course.id ? 'active' : ''}`;
-        header.innerHTML = `<span>${course.name}</span> <span>▼</span>`;
+        // Using course.code and course.name from DB
+        header.innerHTML = `<span>${course.code || ''} ${course.name}</span> <span>▼</span>`;
         header.onclick = () => toggleCourseDropdown(course.id);
 
-        // Sessions List (Hidden by default, shown if active)
-        const sessionUl = document.createElement('ul');
-        sessionUl.className = `session-list ${activeCourseId === course.id ? 'open' : ''}`;
-        sessionUl.id = `sessions-${course.id}`;
+        // 2. Dropdown List (Container for Intro + Weeks)
+        const dropdownUl = document.createElement('ul');
+        dropdownUl.className = `session-list ${activeCourseId === course.id ? 'open' : ''}`;
+        dropdownUl.id = `weeks-list-${course.id}`;
 
-        // "Intro" Item
+        // A. Static 'Introduction' Item
         const introLi = document.createElement('li');
         introLi.className = 'session-item';
         introLi.innerText = 'Course Introduction';
         introLi.onclick = (e) => {
-            e.stopPropagation();
-            renderCourseContent(course.id, 'intro');
+            e.stopPropagation(); // Prevent triggering the header click
+            renderContent(course.id, 'intro');
         };
-        sessionUl.appendChild(introLi);
+        dropdownUl.appendChild(introLi);
 
-        // Individual Session Items
-        course.sessions.forEach(session => {
-            const sessLi = document.createElement('li');
-            sessLi.className = 'session-item';
-            sessLi.innerText = session.title;
-            sessLi.onclick = (e) => {
-                e.stopPropagation();
-                renderCourseContent(course.id, session.id);
-            };
-            sessionUl.appendChild(sessLi);
-        });
+        // B. Dynamic Week Items from Database
+        if (course.weeks && course.weeks.length > 0) {
+            course.weeks.forEach(week => {
+                const weekLi = document.createElement('li');
+                weekLi.className = 'session-item';
+                // Display "Week X: Topic Name"
+                weekLi.innerText = `Week ${week.week_number}: ${week.topic}`;
+                weekLi.onclick = (e) => {
+                    e.stopPropagation();
+                    renderContent(course.id, 'week', week.id);
+                };
+                dropdownUl.appendChild(weekLi);
+            });
+        } else {
+            // Fallback if no weeks exist yet
+            const emptyLi = document.createElement('li');
+            emptyLi.style.padding = '8px 15px';
+            emptyLi.style.fontSize = '0.85em';
+            emptyLi.style.color = '#888';
+            emptyLi.innerText = '(No weeks generated)';
+            dropdownUl.appendChild(emptyLi);
+        }
 
         li.appendChild(header);
-        li.appendChild(sessionUl);
+        li.appendChild(dropdownUl);
         container.appendChild(li);
     });
 }
 
 /**
- * Toggles the accordion logic for the sidebar.
- * @param {string|number} courseId 
+ * Toggles the sidebar dropdown open/close state.
  */
 function toggleCourseDropdown(courseId) {
-    activeCourseId = courseId;
-    renderSidebar(); // Re-render to update CSS classes (open/closed/active)
+    // If clicking the already open course, close it. Otherwise, open the new one.
+    activeCourseId = (activeCourseId === courseId) ? null : courseId;
+    renderSidebar(); // Re-render to apply CSS classes
 }
 
 /**
- * Renders the main content area based on the selected course and session.
- * @param {string|number} courseId 
- * @param {string|number} sessionId 
+ * Renders the Main Content Area
+ * @param {number} courseId - ID of the course
+ * @param {string} type - 'intro' or 'week'
+ * @param {number} [weekId] - Optional, required if type is 'week'
  */
-function renderCourseContent(courseId, sessionId) {
-    const course = courses.find(c => c.id === courseId);
+function renderContent(courseId, type, weekId = null) {
+    const course = coursesData.find(c => c.id === courseId);
     const main = document.getElementById('main-content');
     
-    // Highlight active session (Visual only for this demo)
-    // In a real DOM manipulation, we might add .active class to specific element IDs here.
+    if (!course) return;
 
-    if (sessionId === 'intro') {
+    if (type === 'intro') {
+        // --- VIEW 1: Course Metadata ---
         main.innerHTML = `
             <div class="syllabus-meta-header">
-                <h2>${course.name}</h2>
-                <p><strong>Duration:</strong> ${course.duration} Weeks | <strong>Sessions:</strong> ${course.sessionsPerWeek}/week</p>
+                <h2>${course.name} <span style="font-size:0.6em; color:#666">(${course.code || 'No Code'})</span></h2>
+                <p>
+                    <strong>Duration:</strong> ${course.duration || '?'} Weeks | 
+                    <strong>Sessions:</strong> ${course.sessionsPerWeek || '?'} per week
+                </p>
                 <hr style="margin: 1rem 0; border:0; border-top:1px solid #ddd;">
-                <p><strong>Objectives:</strong><br>${course.objectives}</p>
+                
+                <div class="meta-block">
+                    <h4>🎯 Content</h4>
+                    <p>${course.content || 'No objectives defined.'}</p>
+                </div>
+
+                <div class="meta-block">
+                    <h4>🎯 Course Objectives</h4>
+                    <p>${course.objectives || 'No objectives defined.'}</p>
+                </div>
                 <br>
-                <p><strong>Prerequisites:</strong><br>${course.prerequisites}</p>
-            </div>
-            <div style="color: #334155">
-                <h3>Course Overview</h3>
-                <p>Select a specific week from the sidebar to view teaching strategies and content.</p>
-            </div>
-        `;
-    } else {
-        const session = course.sessions.find(s => s.id === sessionId);
-        main.innerHTML = `
-            <div class="session-card">
-                <h2 style="color:var(--primary-color)">${session.title}</h2>
-                <div class="instruction-block">
-                    <h4>👨‍🏫 Teaching Strategy</h4>
-                    <p>${session.strategy}</p>
-                </div>
-                <div class="instruction-block">
-                    <h4>🗣️ Key Talking Points</h4>
-                    <ul>${session.points.map(p => `<li>${p}</li>`).join('')}</ul>
-                </div>
-                <div class="instruction-block">
-                    <h4>💻 Visuals / Demonstrations</h4>
-                    <p>${session.visuals}</p>
+                <div class="meta-block">
+                    <h4>📚 Prerequisites</h4>
+                    <p>${course.prerequisites || 'None.'}</p>
                 </div>
             </div>
             
-            <div class="ai-prompt-container">
-                <label><strong>Refine this session with AI</strong></label>
-                <textarea rows="2" id="ai-refine-prompt" placeholder="e.g., Add a group activity for 15 minutes..."></textarea>
-                <button class="ai-send-btn" onclick="handleAIUpdate()">Update</button>
+            <div style="margin-top: 2rem; color: #334155; padding: 1rem; background-color: #f8fafc; border-radius: 6px;">
+                <h3>Ready to teach?</h3>
+                <p>Select a specific <strong>Week</strong> from the sidebar to view the topic summary and detailed session plans.</p>
             </div>
         `;
+    } 
+    else if (type === 'week') {
+        // --- VIEW 2: Week Details ---
+        const week = course.weeks.find(w => w.id === weekId);
+        if (!week) return;
+
+        renderWeekView(week, courseId);
     }
 }
 
 /**
- * Handles the "Update" button click in the view page.
+ * Renders the Week View using HTML Templates
  */
-function handleAIUpdate() {
-    const prompt = document.getElementById('ai-refine-prompt').value;
-    if(!prompt) {
-        alert("Please enter a prompt first.");
-        return;
+function renderWeekView(week, courseId) {
+    const main = document.getElementById('main-content');
+
+    // 1. Basic Week Structure
+    main.innerHTML = `
+        <div class="session-card">
+            <h2 style="color:#2563eb">Week ${week.week_number}: ${week.topic}</h2>
+            <div class="instruction-block">
+                <h4>📅 Weekly Summary</h4>
+                <p style="white-space: pre-wrap;">${week.summary}</p>
+            </div>
+            <div id="session-details-container" class="instruction-block"></div>
+        </div>
+    `;
+
+    const container = document.getElementById('session-details-container');
+
+    // 2. Logic: Show Details or Show Generate Button
+    if (week.planned) {
+        // If planned, fetch and show details
+        container.innerHTML = '<p>Loading details...</p>';
+        loadSessionDetails(week.id);
+    } else {
+        // If NOT planned, Clone the Template from HTML
+        const template = document.getElementById('generate-minutes-template');
+        if (template) {
+            const clone = template.content.cloneNode(true);
+            
+            // Add Event Listener to the cloned button
+            const btn = clone.querySelector('.generate-btn');
+            btn.onclick = () => handleGenerateClick(week.id, courseId);
+            
+            container.appendChild(clone);
+        }
     }
-    console.log(`[Mock API] Sending refinement to ${API_UPDATE_ENDPOINT}: ${prompt}`);
-    alert("Request sent to AI! (Check console for mock API call)");
 }
 
-// Boot the application
-init();
+/**
+ * HANDLER: Trigger AI Generation for a specific week
+ */
+async function handleGenerateClick(weekId, courseId) {
+    const container = document.getElementById('session-details-container');
+    
+    // 1. Update UI to Loading State
+    container.innerHTML = `
+        <div style="text-align:center; padding: 2rem;">
+            <div class="spinner" style="margin: 0 auto 1rem auto; width: 30px; height: 30px; border: 3px solid #f3f3f3; border-top: 3px solid #3498db; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+            <p style="color: #64748b">AI is generating minute-by-minute plans... this may take up to 30 seconds.</p>
+        </div>
+        <style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>
+    `;
+
+    try {
+        // 2. Call the API
+        const response = await fetch(CONSTANTS.API_GENERATE_SESSIONS, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ week_id: weekId })
+        });
+
+        if (response.ok) {
+            // 3. Update Local Data State
+            // We need to find the specific week object in memory and update it
+            // so that if the user clicks away and comes back, it's still 'planned'
+            const course = coursesData.find(c => c.id === courseId);
+            const week = course.weeks.find(w => w.id === weekId);
+            week.planned = true;
+
+            // 4. Refresh View (This triggers loadSessionDetails automatically)
+            renderWeekView(week, courseId);
+        } else {
+            const errorData = await response.json();
+            container.innerHTML = `<p style="color:red">Generation Failed: ${errorData.error || 'Unknown error'}</p>`;
+        }
+    } catch (error) {
+        console.error('Generation error:', error);
+        container.innerHTML = `<p style="color:red">Error while generating sessions: ${response.error}</p>`;
+    }
+}
+
+async function loadSessionDetails(weekId) {
+    const container = document.getElementById('session-details-container');
+
+    try {
+        const response = await fetch('/api/get-week-sessions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ week_id: weekId })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            // Clear the "Loading..." text
+            container.innerHTML = '<h4>📚 Detailed Session Plan</h4>';
+
+            // Loop through each session found
+            data.sessions.forEach((session, index) => {
+                const minutesData = session.minutes_data;
+                
+                // Create a wrapper for this session
+                let sessionHtml = `<div class="session-item" style="margin-bottom: 20px; border-left: 3px solid var(--secondary-color); padding-left: 15px;">`;
+                sessionHtml += `<h5>Session ${index + 1}</h5>`;
+
+                // Loop through the minutes keys (e.g., "Minutes 00-15")
+                // Object.entries converts {"key": val} into [["key", val], ...]
+                for (const [timeRange, contentObj] of Object.entries(minutesData)) {
+                    sessionHtml += `
+                        <div style="background: #f8f9fa; padding: 10px; margin-bottom: 8px; border-radius: 6px;">
+                            <strong style="color: #4b5563;">⏱️ ${timeRange}: ${contentObj.topic}</strong>
+                            <p style="margin-top: 5px; font-size: 0.95em; color: #374151;">${contentObj.content}</p>
+                        </div>
+                    `;
+                }
+                
+                sessionHtml += `</div>`;
+                container.innerHTML += sessionHtml;
+            });
+
+        } else {
+            container.innerHTML = `<p style="color:red">Error loading sessions: ${data.error}</p>`;
+        }
+    } catch (error) {
+        console.error("Fetch error:", error);
+        container.innerHTML = `<p style="color:red">Failed to connect to server.</p>`;
+    }
+}

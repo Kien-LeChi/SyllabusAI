@@ -175,3 +175,57 @@ textarea {
     border-radius: var(--radius);
     cursor: pointer;
 }
+
+/* Container for the Generate Button */
+.generate-wrapper {
+    text-align: center;
+    padding: 2rem;
+    background: #fff7ed; /* Light orange background */
+    border: 1px dashed #f59e0b; /* Orange border */
+    border-radius: 8px;
+    margin-top: 1rem;
+}
+
+.warning-text {
+    color: #d97706;
+    margin-bottom: 1rem;
+    font-weight: 500;
+}
+
+/* The Generate Button Style */
+.generate-btn {
+    background-color: #f59e0b !important; /* Orange */
+    width: auto !important;
+    padding: 0.6rem 1.5rem !important;
+    font-weight: bold;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.generate-btn:hover {
+    background-color: #d97706 !important;
+}
+
+/* Loading Spinner Styles */
+.loader-wrapper {
+    text-align: center;
+    padding: 2rem;
+}
+
+.spinner {
+    margin: 0 auto 1rem auto;
+    width: 30px;
+    height: 30px;
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #3498db; /* Blue */
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
