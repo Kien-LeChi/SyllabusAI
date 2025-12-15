@@ -7,7 +7,10 @@ const CONSTANTS = {
     API_GET_COURSES: '/api/get-all-courses',
     API_UPDATE_AI: '/api/update-syllabus',
     API_GET_SESSIONS: '/api/get-week-sessions',
-    API_GENERATE_SESSIONS: '/api/generate-week-sessions' // New Endpoint
+    API_GENERATE_SESSIONS: '/api/generate-week-sessions', // New Endpoint
+    // ### NEW CODE ###
+    API_REGENERATE_SESSION: '/api/regenerate-week-sessions' // New Endpoint for regeneration
+    // ### NEW CODE ###
 };
 // State management
 let coursesData = [];
@@ -199,16 +202,37 @@ function renderWeekView(week, courseId) {
                 <p style="white-space: pre-wrap;">${week.summary}</p>
             </div>
             <div id="session-details-container" class="instruction-block"></div>
-        </div>
+            <div id="session-regeneration-container" class="instruction-block" style="margin-top: 2rem;"></div>
+            </div>
     `;
 
     const container = document.getElementById('session-details-container');
+    // ### NEW CODE ###
+    const regenContainer = document.getElementById('session-regeneration-container');
+    // ### NEW CODE ###
 
     // 2. Logic: Show Details or Show Generate Button
     if (week.planned) {
         // If planned, fetch and show details
         container.innerHTML = '<p>Loading details...</p>';
         loadSessionDetails(week.id);
+        
+        // ### NEW CODE ###
+        // If planned, show the regeneration prompt/button
+        const template = document.getElementById('regenerate-sessions-template');
+        if (template) {
+            const clone = template.content.cloneNode(true);
+            
+            // Add Event Listener to the cloned button
+            const btn = clone.querySelector('.regenerate-btn');
+            // The prompt input field
+            const promptInput = clone.querySelector('.regeneration-prompt-input');
+            
+            btn.onclick = () => handleRegenerateClick(week.id, courseId, promptInput.value);
+            
+            regenContainer.appendChild(clone);
+        }
+        // ### NEW CODE ###
     } else {
         // If NOT planned, Clone the Template from HTML
         const template = document.getElementById('generate-minutes-template');
@@ -225,19 +249,22 @@ function renderWeekView(week, courseId) {
 }
 
 /**
+ * Toggles the sidebar dropdown open/close state.
+ */
+function toggleCourseDropdown(courseId) {
+    // If clicking the already open course, close it. Otherwise, open the new one.
+    activeCourseId = (activeCourseId === courseId) ? null : courseId;
+    renderSidebar(); // Re-render to apply CSS classes
+}
+
+/**
  * HANDLER: Trigger AI Generation for a specific week
  */
 async function handleGenerateClick(weekId, courseId) {
     const container = document.getElementById('session-details-container');
     
     // 1. Update UI to Loading State
-    container.innerHTML = `
-        <div style="text-align:center; padding: 2rem;">
-            <div class="spinner" style="margin: 0 auto 1rem auto; width: 30px; height: 30px; border: 3px solid #f3f3f3; border-top: 3px solid #3498db; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-            <p style="color: #64748b">AI is generating minute-by-minute plans... this may take up to 30 seconds.</p>
-        </div>
-        <style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>
-    `;
+    updateLoadingState(container, 'AI is generating minute-by-minute plans...');
 
     try {
         // 2. Call the API
@@ -247,25 +274,94 @@ async function handleGenerateClick(weekId, courseId) {
             body: JSON.stringify({ week_id: weekId })
         });
 
+        await handleGenerationResponse(response, courseId, weekId);
+        
+    } catch (error) {
+        console.error('Generation error:', error);
+        container.innerHTML = `<p style="color:red">Error while generating sessions: ${error.message || 'Server connection failed'}</p>`;
+    }
+}
+
+// ### NEW CODE ###
+/**
+ * HANDLER: Trigger AI Regeneration for a specific week with a prompt
+ */
+async function handleRegenerateClick(weekId, courseId, prompt) {
+    // We update the regeneration container to show loading
+    const container = document.getElementById('session-regeneration-container');
+    
+    // 1. Update UI to Loading State
+    updateLoadingState(container, 'AI is regenerating sessions based on your prompt...');
+
+    try {
+        // 2. Call the API
+        const response = await fetch(CONSTANTS.API_REGENERATE_SESSION, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                week_id: weekId,
+                prompt: prompt // Include the user's prompt
+            })
+        });
+
+        // 3. Handle response, but we don't need to update `planned` state since it was already planned
         if (response.ok) {
-            // 3. Update Local Data State
-            // We need to find the specific week object in memory and update it
-            // so that if the user clicks away and comes back, it's still 'planned'
+            // Find week to refresh the view
             const course = coursesData.find(c => c.id === courseId);
             const week = course.weeks.find(w => w.id === weekId);
-            week.planned = true;
-
-            // 4. Refresh View (This triggers loadSessionDetails automatically)
+            
+            // The content container needs a loading update before the fetch to show regeneration is working
+            const detailsContainer = document.getElementById('session-details-container');
+            detailsContainer.innerHTML = '<p>Refreshing session details...</p>';
+            
+            // Refresh View
             renderWeekView(week, courseId);
         } else {
             const errorData = await response.json();
-            container.innerHTML = `<p style="color:red">Generation Failed: ${errorData.error || 'Unknown error'}</p>`;
+            container.innerHTML = `<p style="color:red">Regeneration Failed: ${errorData.error || 'Unknown error'}</p>`;
         }
     } catch (error) {
-        console.error('Generation error:', error);
-        container.innerHTML = `<p style="color:red">Error while generating sessions: ${response.error}</p>`;
+        console.error('Regeneration error:', error);
+        container.innerHTML = `<p style="color:red">Error while regenerating sessions: ${error.message || 'Server connection failed'}</p>`;
     }
 }
+
+/**
+ * Helper to update the UI to a loading/spinner state.
+ */
+function updateLoadingState(element, message) {
+    element.innerHTML = `
+        <div style="text-align:center; padding: 2rem;">
+            <div class="spinner" style="margin: 0 auto 1rem auto; width: 30px; height: 30px; border: 3px solid #f3f3f3; border-top: 3px solid #3498db; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+            <p style="color: #64748b">${message}</p>
+        </div>
+        <style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>
+    `;
+}
+
+/**
+ * Helper to handle the common response logic for generation/regeneration.
+ */
+async function handleGenerationResponse(response, courseId, weekId) {
+    const container = document.getElementById('session-details-container');
+    
+    if (response.ok) {
+        // 3. Update Local Data State
+        const course = coursesData.find(c => c.id === courseId);
+        const week = course.weeks.find(w => w.id === weekId);
+        // Ensure planned status is set
+        if (week) {
+            week.planned = true;
+        }
+
+        // 4. Refresh View
+        renderWeekView(week, courseId);
+    } else {
+        const errorData = await response.json();
+        container.innerHTML = `<p style="color:red">Generation Failed: ${errorData.error || 'Unknown error'}</p>`;
+    }
+}
+// ### NEW CODE ###
 
 async function loadSessionDetails(weekId) {
     const container = document.getElementById('session-details-container');

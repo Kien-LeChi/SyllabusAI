@@ -307,6 +307,7 @@ def get_week_sessions():
             
         return jsonify({
             "status": "success",
+            "planned": week.planned,
             "week_topic": week.topic,
             "week_summary": week.summary,
             "sessions": sessions_list
@@ -365,10 +366,13 @@ def create_week_sessions():
             {json.dumps(context_json, indent=2, ensure_ascii=False)}.
             Make sure that the content of each lectures satisfy the week's topic and summary, and overall fits
             into the syllabus and fulfilling the content's of the course.
-            The response format should be a **Valid JSON** containing the minutes of {sessions_count} sessions, each wrapped in its "session i" key.
+            The response format should be a **Valid JSON** containing **ONLY** the minutes of {sessions_count} sessions, each wrapped in its "session i" key.
             e.g. {{
               "session 1": {{
-                  "Minute 0-15": "Introduction"
+                  "Minute 0-15": {{
+                    "topic": "Introduction to Machine Learning",
+                    "content": "This session we will learn about ...",
+                  }}
               }}  
             }}
         """   
@@ -400,6 +404,8 @@ def create_week_sessions():
             response = clean_json(response)
             print("Got response")
         
+        print("AI response: ", response)
+        
         created_sessions = []
         
         for i in range(1, sessions_count + 1):
@@ -409,7 +415,7 @@ def create_week_sessions():
             if minutes_data:
                 new_session = Session(
                     week_id = week_id,
-                    session_no = 1,
+                    session_no = i,
                     data = minutes_data
                 )
                 db.session.add(new_session)
@@ -434,6 +440,160 @@ def create_week_sessions():
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': f"Exception met while trying to generate sessions: {str(e)}"}), 500
+
+@api_bp.route('/regenerate-week-sessions', methods=['GET', 'POST'])
+def redo_week_sessions():
+    
+    # ONGOING: Get week's ID
+    # TODO: Add the Update With AI feature
+    try:
+        req_data = request.get_json()
+        week_id = req_data.get('week_id')
+        user_prompt = req_data.get('prompt')
+        
+        if not week_id:
+            return jsonify({"error": "Needed weekId"}), 400
+        if not user_prompt:
+            return jsonify({"error": "Need a prompt to regenerate session"})
+        
+        week = db.session.get(Week, week_id)
+        if not week:
+            return jsonify({"error": "Week not found"}), 404
+        
+        if not week.planned:
+            return jsonify({"error": "Week is not planned"}), 400
+        
+        course = week.course
+        week_no = week.week_number
+        
+        sessions_count = int(course.meta_data.get('sessionsPerWeek', 2))
+        hours_per_session = int(course.meta_data.get('hours_per_session', 2))
+
+        existing_sessions_objs = Session.query.filter_by(week_id=week_id).order_by(Session.session_no).all()
+        current_sessions_json = {
+            f"session {s.session_no}": s.data for s in existing_sessions_objs
+        }
+
+        # TODO: Implement AI response
+        context_json = {
+            "name": course.name,
+            "content": course.content,
+            "objectives": course.meta_data.get('objectives'),
+            "week_topic": week.topic,
+            "week_summary": week.summary,
+            "sessions_count": sessions_count,
+            "duration_minutes": hours_per_session * 60,
+            "current_plan": current_sessions_json,
+            "user_instructions": user_prompt
+        }
+    
+    
+        prompt = None
+        with open('prompt.txt', 'r', encoding='utf-8') as file:
+            prompt = file.read()
+        if not prompt:
+            raise ImportError("Prompt cannot be found")     
+        # Will think of some way to encapsulate the context of the whole course in the prompt later
+        #   Embeddings?
+    
+        prompt = f"""
+            You are an expert curriculum developer. 
+            I have an existing plan for {sessions_count} sessions for "Week {week_no}" of the course "{course.name}".
+            
+            Here is the context and the CURRENT plan:
+            {json.dumps(context_json, indent=2, ensure_ascii=False)}
+
+            **TASK:**
+            Regenerate the session minutes entirely based on the "user_refinement_instruction" provided above.
+            Modify the content, tone, or structure as requested. The modified sessions **MUST FOLLOW** all of the metadata,
+            which means that the objectives, topic, summary, sessions count and sessions' durations **DOES NOT CHANGE**.
+            The durations can **ONLY BE shorten**, **NOT** extended. (e.g. 90 sessions can only be shortened to 60 minutes, 
+            not extended to 120 minutes)
+            
+            **OUTPUT FORMAT:**
+            The response format should be a **Valid JSON** containing **ONLY** the minutes of {sessions_count} sessions, each wrapped in its "session i" key.
+            e.g. {{
+              "session 1": {{
+                  "Minute 0-15": {{
+                     "topic": "Introduction to...",
+                     "content": "This session begins with a small physical activity..."
+                  }}
+              }},
+              "session 2": ...
+            }} 
+        """
+        # Will think of some way to encapsulate the context of the whole course in the prompt later
+        #   Embeddings?
+        
+        print("Prompt is structured. Sending prompt to GenAI...")
+        print(f"Regenerating Week {week_id} with prompt: {user_prompt[:50]}...")
+        res = None
+        response = None
+        if use_actual_ai_response:
+            try:
+                res = client.models.generate_content(
+                    model="gemini-2.5-flash-lite",
+                    contents=prompt,
+                    config=types.GenerateContentConfig(
+                        temperature=0.1
+                    )
+                )
+            except Exception as e:
+                raise TimeoutError(f"Error while getting data from GenAI: {e}")
+            
+            try:
+                response = clean_json(res.text)
+            except Exception as e:
+                raise TypeError(f"AI failed to return valid JSON {e}")
+            
+            print("Got response")
+        
+        # Okay I am poor so I must use this to not exceed rate limites
+        else :
+            with open('session.json', 'r', encoding="utf-8") as file:
+                response = file.read()
+            response = clean_json(response)
+            print("Got response")
+        
+        print("Response: ", response)
+        
+        Session.query.filter_by(week_id=week_id).delete()
+        db.session.flush()
+        
+        created_sessions = []
+        
+        for i in range(1, sessions_count + 1):
+            session_key = f"session {i}"
+            minutes_data = response.get(session_key)
+            
+            if minutes_data:
+                new_session = Session(
+                    week_id = week_id,
+                    session_no = i,
+                    data = minutes_data
+                )
+                db.session.add(new_session)
+                created_sessions.append(new_session)
+                
+        
+        db.session.commit()
+        
+        return jsonify({
+            "message": "Sessions generated successfully",
+            "week_id": week.id,
+            "sessions": [
+                {
+                    "id": s.id,
+                    "session_no": s.session_no,
+                    "minutes_data": s.data
+                } for s in created_sessions
+            ]
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f"Exception met while trying to generate sessions: {str(e)}"}), 500
+
 
 @api_bp.route('/', methods=['POST', 'GET'])
 def api_index():
